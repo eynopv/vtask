@@ -10,9 +10,9 @@ function createCompanyTable() {
   console.log('Creating "Company" table');
 
   return db.run(`CREATE TABLE Company (
-    id int unsigned NOT NULL,
-    name varchar(255) NOT NULL,
-    parentCompany int unsigned,
+    id INTEGER,
+    name TEXT NOT NULL,
+    parentCompany INTEGER,
     FOREIGN KEY (parentCompany) REFERENCES Company(id),
     PRIMARY KEY (id)
   )`, (err) => {
@@ -28,9 +28,9 @@ function createStationTypeTable() {
   console.log('Creating "StationType" table');
 
   return db.run(`CREATE TABLE StationType (
-    id int unsigned NOT NULL,
-    name varchar(255) NOT NULL,
-    maxPower int NOT NULL
+    id INTEGER,
+    name TEXT NOT NULL,
+    maxPower NUMERIC NOT NULL
   )`, (err) => {
     if (err) {
       console.log('Unable to create "StationType" table', err.message);
@@ -44,10 +44,10 @@ function createStationTable() {
   console.log('Creating "Station" table');
 
   return db.run(`CREATE TABLE Station (
-    id int unsigned NOT NULL,
-    name varchar(255),
-    typeId int unsigned NOT NULL,
-    companyId int unsigned NOT NULL,
+    id INTEGER,
+    name TEXT,
+    typeId INTEGER NOT NULL,
+    companyId INTEGER NOT NULL,
     FOREIGN KEY (typeId) REFERENCES StationType(id),
     PRIMARY KEY (id)
   )`, (err) => {
