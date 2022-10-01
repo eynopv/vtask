@@ -7,8 +7,8 @@ const router: Router = express.Router();
 // Create
 router.post('/', hasBody, async (req: Request, res: Response) => {
   try {
-    const company = await create(req.body);
-    return res.status(201).send(company)
+    const companyId = await create(req.body);
+    return res.status(201).send(Object.assign({}, req.body, { id: companyId }));
   } catch (err) {
     return res.status(500).send({ error: String(err) });
   }
