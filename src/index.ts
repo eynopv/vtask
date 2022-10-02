@@ -1,6 +1,7 @@
 import express, { Express, Request, Response } from 'express';
 import companyRouter from './routes/company';
 import stationTypeRouter from './routes/station_type';
+import stationRouter from './routes/station';
 
 const app: Express = express();
 
@@ -13,6 +14,8 @@ app.get('/ping', (req: Request, res: Response) => {
 app.use('/company', companyRouter);
 
 app.use('/station_type', stationTypeRouter);
+
+app.use('/station', stationRouter);
 
 app.listen(3000, () => {
   console.log('Starting api on port 3000');
