@@ -1,7 +1,8 @@
 import db from '../lib/sqlite';
 import CRUDL from './crudl';
+import { TABLE_NAMES } from './helpers';
 
-const TABLE_NAME = 'Station';
+const TABLE_NAME = TABLE_NAMES.STATION;
 const StationCRUDL = new CRUDL(TABLE_NAME);
 
 export function create(params: any) {
@@ -27,12 +28,13 @@ export function list() {
 export function retrievePopulatedCompanyRelated(companyId: number) {
   const sql = `
     WITH RelatedCompanies AS (
-      SELECT id FROM Company WHERE id = $companyId OR parentCompany = $companyId
+      SELECT id FROM ${TABLE_NAMES.COMPANY} WHERE id = $companyId OR parentCompany = $companyId
     ),
     PopulatedStations AS (
-      SELECT Station.id, Station.name, Station.companyId, StationType.maxPower
-      FROM Station
-      INNER JOIN StationType ON Station.typeId = StationType.id
+      SELECT s.id, s.name, s.companyId, st.maxPower
+      FROM ${TABLE_NAME} AS s
+      INNER JOIN ${TABLE_NAMES.STATION_TYPE} AS st
+      ON s.typeId = st.id
     )
     SELECT ps.name, ps.id, ps.maxPower
     FROM RelatedCompanies AS rc

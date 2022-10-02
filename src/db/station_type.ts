@@ -1,6 +1,7 @@
 import CRUDL from './crudl';
+import { TABLE_NAMES } from './helpers';
 
-const TABLE_NAME = "StationType";
+const TABLE_NAME = TABLE_NAMES.STATION_TYPE;
 const StationTypeCRUDL = new CRUDL(TABLE_NAME);
 
 export function create(params: any) {

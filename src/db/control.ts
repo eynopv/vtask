@@ -1,4 +1,5 @@
 import db from '../lib/sqlite';
+import { TABLE_NAMES } from './helpers';
 
 function createTables() {
   createCompanyTable();
@@ -7,55 +8,55 @@ function createTables() {
 }
 
 function createCompanyTable() {
-  console.log('Creating "Company" table');
+  console.log(`Creating "${TABLE_NAMES.COMPANY}" table`);
 
-  return db.run(`CREATE TABLE Company (
+  return db.run(`CREATE TABLE ${TABLE_NAMES.COMPANY} (
     id INTEGER,
     name TEXT NOT NULL,
     parentCompany INTEGER,
-    FOREIGN KEY (parentCompany) REFERENCES Company(id),
+    FOREIGN KEY (parentCompany) REFERENCES ${TABLE_NAMES.COMPANY}(id),
     PRIMARY KEY (id)
   )`, (err) => {
     if (err) {
-      console.log('Unable to create "Company" table', err.message);
+      console.log(`Unable to create "${TABLE_NAMES.COMPANY}" table`, err.message);
     } else {
-      console.log('Table "Company" is created');
+      console.log(`Table "${TABLE_NAMES.COMPANY}" is created`);
     }
   });
 }
 
 function createStationTypeTable() {
-  console.log('Creating "StationType" table');
+  console.log(`Creating "${TABLE_NAMES.STATION_TYPE}" table`);
 
-  return db.run(`CREATE TABLE StationType (
+  return db.run(`CREATE TABLE ${TABLE_NAMES.STATION_TYPE} (
     id INTEGER,
     name TEXT NOT NULL,
     maxPower NUMERIC NOT NULL,
     PRIMARY KEY (id)
   )`, (err) => {
     if (err) {
-      console.log('Unable to create "StationType" table', err.message);
+      console.log(`Unable to create "${TABLE_NAMES.STATION_TYPE}" table`, err.message);
     } else {
-      console.log('Table "StationType" is created');
+      console.log(`Table "${TABLE_NAMES.STATION_TYPE}" is created`);
     }
   });
 }
 
 function createStationTable() {
-  console.log('Creating "Station" table');
+  console.log(`Creating "${TABLE_NAMES.STATION}" table`);
 
-  return db.run(`CREATE TABLE Station (
+  return db.run(`CREATE TABLE ${TABLE_NAMES.STATION} (
     id INTEGER,
     name TEXT,
     typeId INTEGER NOT NULL,
     companyId INTEGER NOT NULL,
-    FOREIGN KEY (typeId) REFERENCES StationType(id),
+    FOREIGN KEY (typeId) REFERENCES ${TABLE_NAMES.STATION_TYPE}(id),
     PRIMARY KEY (id)
   )`, (err) => {
     if (err) {
-      console.log('Unable to create "Station" table', err.message);
+      console.log(`Unable to create "${TABLE_NAMES.STATION}" table`, err.message);
     } else {
-      console.log('Table "Station" is created');
+      console.log(`Table "${TABLE_NAMES.STATION}" is created`);
     }
   });
 }

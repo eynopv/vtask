@@ -1,6 +1,7 @@
+import { TABLE_NAMES } from './helpers';
 import CRUDL from './crudl';
 
-const TABLE_NAME = "Company";
+const TABLE_NAME = TABLE_NAMES.COMPANY;
 
 type Company = {
   id: number,
