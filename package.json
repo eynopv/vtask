@@ -10,6 +10,7 @@
     "db:init": "DB_INIT=1 ts-node ./src/db/control.ts",
     "db:delete": "DB_DELETE=1 ts-node ./src/db/control.ts",
     "db:reset": "npm run db:delete && npm run db:init",
+    "db:populate": "ts-node ./src/db/populate.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
