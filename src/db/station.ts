@@ -5,6 +5,21 @@ import { TABLE_NAMES } from './helpers';
 const TABLE_NAME = TABLE_NAMES.STATION;
 const StationCRUDL = new CRUDL(TABLE_NAME);
 
+type Station = {
+  id: number,
+  name: string,
+  typeId: number,
+  companyId: number
+};
+
+export type PopulatedStation = {
+  id: number,
+  name: string,
+  companyId: number,
+  parentCompany: number,
+  maxPower: number
+};
+
 export function create(params: any) {
   return StationCRUDL.create(params);
 }
@@ -21,8 +36,24 @@ export function destroy(id: number) {
   return StationCRUDL.destroy(id);
 }
 
-export function list() {
+export function list(): Promise<Station[]> {
   return StationCRUDL.list();
+}
+
+export function listPopulatedStations(): Promise<PopulatedStation[]> {
+  const sql = `
+    SELECT Station.id, Station.name, Station.companyId, StationType.maxPower, Company.parentCompany
+    FROM Station
+    INNER JOIN StationType ON Station.typeId = StationType.id
+    INNER JOIN Company ON Station.companyId = Company.id
+  `;
+
+  return new Promise((resolve, reject) => {
+    db.all(sql, function (err, rows) {
+      if (err) return reject(err);
+      resolve(rows);
+    });
+  });
 }
 
 export function retrievePopulatedCompanyRelated(companyId: number) {
@@ -43,9 +74,9 @@ export function retrievePopulatedCompanyRelated(companyId: number) {
   `;
 
   return new Promise((resolve, reject) => {
-    db.all(sql, { $companyId: companyId }, function (err, row) {
+    db.all(sql, { $companyId: companyId }, function (err, rows) {
       if (err) return reject(err);
-      resolve(row);
+      resolve(rows);
     });
   });
 }

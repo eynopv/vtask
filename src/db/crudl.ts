@@ -72,7 +72,7 @@ class CRUDL {
     });
   }
 
-  list() {
+  list(): Promise<any> {
     const sql = `SELECT * FROM ${this.tableName}`;
 
     return new Promise((resolve, reject) => {
