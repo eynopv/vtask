@@ -1,3 +1,4 @@
+import db from '../lib/sqlite';
 import CRUDL from './crudl';
 
 const TABLE_NAME = 'Station';
@@ -21,4 +22,28 @@ export function destroy(id: number) {
 
 export function list() {
   return StationCRUDL.list();
+}
+
+export function retrievePopulatedCompanyRelated(companyId: number) {
+  const sql = `
+    WITH RelatedCompanies AS (
+      SELECT id FROM Company WHERE id = $companyId OR parentCompany = $companyId
+    ),
+    PopulatedStations AS (
+      SELECT Station.id, Station.name, Station.companyId, StationType.maxPower
+      FROM Station
+      INNER JOIN StationType ON Station.typeId = StationType.id
+    )
+    SELECT ps.name, ps.id, ps.maxPower
+    FROM RelatedCompanies AS rc
+    JOIN PopulatedStations AS ps
+    ON ps.companyId = rc.id
+  `;
+
+  return new Promise((resolve, reject) => {
+    db.all(sql, { $companyId: companyId }, function (err, row) {
+      if (err) return reject(err);
+      resolve(row);
+    });
+  });
 }

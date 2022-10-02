@@ -1,6 +1,6 @@
 import express, { Router, Request, Response } from 'express';
 import { hasBody } from './helpers';
-import { create, retrieve, update, destroy, list } from '../db/station';
+import { create, retrieve, update, destroy, list, retrievePopulatedCompanyRelated } from '../db/station';
 
 const router: Router = express.Router(); 
 
@@ -18,6 +18,18 @@ router.post('/', hasBody, async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const station = await retrieve(Number(req.params.id));
+    if (!station) {
+      return res.status(404).send({ error: 'Not found' });
+    }
+    return res.status(200).send(station);
+  } catch (err) {
+    return res.status(500).send({ error: String(err) });
+  }
+});
+
+router.get('/company/:companyId', async (req: Request, res: Response) => {
+  try {
+    const station = await retrievePopulatedCompanyRelated(Number(req.params.companyId));
     if (!station) {
       return res.status(404).send({ error: 'Not found' });
     }
