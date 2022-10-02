@@ -6,7 +6,7 @@ const TABLE_NAME = TABLE_NAMES.COMPANY;
 type Company = {
   id: number,
   name: string,
-  parentCompany: number
+  parentCompany?: number|null
 }
 
 const CompanyCRUDL = new CRUDL(TABLE_NAME);
