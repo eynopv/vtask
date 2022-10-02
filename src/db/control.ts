@@ -30,7 +30,8 @@ function createStationTypeTable() {
   return db.run(`CREATE TABLE StationType (
     id INTEGER,
     name TEXT NOT NULL,
-    maxPower NUMERIC NOT NULL
+    maxPower NUMERIC NOT NULL,
+    PRIMARY KEY (id)
   )`, (err) => {
     if (err) {
       console.log('Unable to create "StationType" table', err.message);
