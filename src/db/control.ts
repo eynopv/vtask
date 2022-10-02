@@ -8,55 +8,53 @@ function createTables() {
 }
 
 function createCompanyTable() {
-  console.log(`Creating "${TABLE_NAMES.COMPANY}" table`);
-
-  return db.run(`CREATE TABLE ${TABLE_NAMES.COMPANY} (
+  const tableName = TABLE_NAMES.COMPANY;
+  const definition = `
     id INTEGER,
     name TEXT NOT NULL,
     parentCompany INTEGER,
-    FOREIGN KEY (parentCompany) REFERENCES ${TABLE_NAMES.COMPANY}(id),
+    FOREIGN KEY (parentCompany) REFERENCES ${tableName}(id),
     PRIMARY KEY (id)
-  )`, (err) => {
-    if (err) {
-      console.log(`Unable to create "${TABLE_NAMES.COMPANY}" table`, err.message);
-    } else {
-      console.log(`Table "${TABLE_NAMES.COMPANY}" is created`);
-    }
-  });
+  `;
+
+  return create(tableName, definition);
 }
 
 function createStationTypeTable() {
-  console.log(`Creating "${TABLE_NAMES.STATION_TYPE}" table`);
-
-  return db.run(`CREATE TABLE ${TABLE_NAMES.STATION_TYPE} (
+  const tableName = TABLE_NAMES.STATION_TYPE;
+  const definition = `
     id INTEGER,
     name TEXT NOT NULL,
     maxPower NUMERIC NOT NULL,
     PRIMARY KEY (id)
-  )`, (err) => {
-    if (err) {
-      console.log(`Unable to create "${TABLE_NAMES.STATION_TYPE}" table`, err.message);
-    } else {
-      console.log(`Table "${TABLE_NAMES.STATION_TYPE}" is created`);
-    }
-  });
+  `;
+
+  return create(tableName, definition);
 }
 
 function createStationTable() {
-  console.log(`Creating "${TABLE_NAMES.STATION}" table`);
-
-  return db.run(`CREATE TABLE ${TABLE_NAMES.STATION} (
+  const tableName = TABLE_NAMES.STATION;
+  const definition = `
     id INTEGER,
     name TEXT,
     typeId INTEGER NOT NULL,
     companyId INTEGER NOT NULL,
     FOREIGN KEY (typeId) REFERENCES ${TABLE_NAMES.STATION_TYPE}(id),
     PRIMARY KEY (id)
+  `;
+  return create(tableName, definition);
+}
+
+function create(tableName: string, definition: string) {
+  console.log(`Creating "${tableName}" table`);
+
+  return db.run(`CREATE TABLE ${tableName} (
+    ${definition}
   )`, (err) => {
     if (err) {
-      console.log(`Unable to create "${TABLE_NAMES.STATION}" table`, err.message);
+      console.log(`Unable to create "${tableName}" table`, err.message);
     } else {
-      console.log(`Table "${TABLE_NAMES.STATION}" is created`);
+      console.log(`Table "${tableName}" is created`);
     }
   });
 }
@@ -68,39 +66,28 @@ function deleteTables() {
 }
 
 function dropCompanyTable() {
-  console.log('Deleting "Company" table');
-
-  db.run('DROP TABLE Company', (err) => {
-    if (err) {
-      console.log('Unable to delete "Company" table', err.message);
-    } else {
-      console.log('Table "Company" is deleted');
-    }
-  });
+  return drop(TABLE_NAMES.COMPANY);
 }
 
 function dropStationTable() {
-  console.log('Deleting "Station" table');
-
-  db.run('DROP TABLE Station', (err) => {
-    if (err) {
-      console.log('Unable to delete "Station" table', err.message);
-    } else {
-      console.log('Table "Station" is deleted');
-    }
-  });
+  return drop(TABLE_NAMES.STATION);
 }
 
 function dropStationTypeTable() {
-  console.log('Deleting "StationType" table');
+  return drop(TABLE_NAMES.STATION_TYPE);
+}
 
-  db.run('DROP TABLE StationType', (err) => {
+function drop(tableName: string) {
+  console.log(`Deleting "${tableName}" table`);
+
+  db.run(`DROP TABLE ${tableName}`, (err) => {
     if (err) {
-      console.log('Unable to delete "StationType" table', err.message);
+      console.log(`Unable to delete "${tableName}" table`, err.message);
     } else {
-      console.log('Table "StationType" is deleted');
+      console.log(`Table "${tableName}" is deleted`);
     }
   });
+
 }
 
 function main() {
