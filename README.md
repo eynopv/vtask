@@ -6,15 +6,15 @@
 
 The project can be dockerized with
 
-`docker build --tag eynopv-solution .`
+`$ docker build --tag eynopv-solution .`
 
 And then started with
 
-`docker run --rm --name eynopv-solution -p 3000:3000 eynopv-solution`
+`$ docker run --rm --name eynopv-solution -p 3000:3000 eynopv-solution`
 
 There is conviniet script which does both, just run
 
-`./start.sh`
+`$ ./start.sh`
 
 ### Build and Run
 
@@ -94,6 +94,8 @@ StationType {
 
 `DELETE /station_type/:id` - delete StationType
 
+`GET /station_type` - list all StationTypes
+
 ### Station
 
 ```
@@ -113,7 +115,10 @@ Station {
 
 `DELETE /station/:id` - delete Station
 
+`GET /station` - list all Stations
+
 `GET  /station/company/:companyId` - retrieve company related stations including child companies
+
 
 ### Workflow
 
