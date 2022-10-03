@@ -27,6 +27,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
+// Retrieve company related stations including child companies
 router.get('/company/:companyId', async (req: Request, res: Response) => {
   try {
     const station = await retrievePopulatedCompanyRelated(Number(req.params.companyId));
