@@ -24,7 +24,7 @@ export class Workflow {
   stations: PopulatedStation[] = [];
   commands: string[] = [];
   state: WorkflowState;
-  reports: Report[]
+  reports: Report[];
 
   constructor(script: string) {
     this.commands = parse(script);
@@ -166,14 +166,15 @@ export class Command {
     this.workflow.state.companies = companies
   }
 
-  getAllStationIds() {
-    return this.workflow.stations.map((station) => station.id);
-  }
-
   calculateTotalChargingPower() {
     const stations = this.getChargingStations();
     this.workflow.state.totalChargingPower = stations.reduce((accumulator, s) => accumulator + s.maxPower, 0);
   }
+
+  getAllStationIds() {
+    return this.workflow.stations.map((station) => station.id);
+  }
+
 
   getChargingStations() {
     const chargingStationIds = this.getTotalChargingStations();
