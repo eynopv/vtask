@@ -12,7 +12,8 @@ app.post('/workflow', async (req: Request, res: Response) => {
   const script = req.body;
   const workflow = new Workflow(script);
   await workflow.setup();
-  return res.send(workflow.prepareReport());
+  const report = workflow.run();
+  return res.send({ data: report });
 });
 
 app.use(express.json());

@@ -6,12 +6,6 @@ export function parse(workflow: string) {
   return splitted;
 }
 
-export function stepisize(parsedWorkflow: string[]): Step[] {
-  return parsedWorkflow.map((stepName) => {
-    return new Step(stepName);
-  });
-}
-
 type Report = {
   step: string,
   timestamp: number,
@@ -29,10 +23,14 @@ type CompanyReport = {
 export class Workflow {
   stations: PopulatedStation[] = [];
   commands: string[] = [];
-  steps: (BeginStep|WaitStep|StartStationStep|StopStationStep)[] = [];
+  state: WorkflowState;
+  reports: Report[]
 
   constructor(script: string) {
     this.commands = parse(script);
+    this.reports = [];
+    this.state = new WorkflowState();
+
     if (!this.commands.length) throw new Error('Empty script');
     if (this.commands[0] !== 'Begin') throw new Error('Script should start from "Begin"');
     if (this.commands[this.commands.length - 1] !== 'End') throw new Error('Script should end with "End"');
@@ -41,80 +39,108 @@ export class Workflow {
   async setup() {
     const stations = await listPopulatedStations();
     this.stations = stations;
-
-    for (let i = 0; i < this.commands.length; i++) {
-      const command = this.commands[i];
-      let previousStep = null;
-      if (i > 0) {
-        previousStep = this.steps[i - 1];
-      }
-
-      let step;
-      const params = command.split(' ');
-      if (params[0] === 'Begin') {
-        step = new BeginStep(command, previousStep);
-      } else if (params[0] === 'Wait') {
-        step = new WaitStep(command, previousStep);
-      } else if (params[0] === 'Start') {
-        step = new StartStationStep(command, previousStep);
-      } else if (params[0] === 'Stop') {
-        step = new StopStationStep(command, previousStep);
-      } else if (params[0] === 'End') {
-        step = new EndStep(command, previousStep);
-      } else {
-        throw new Error(`Unknown Step: ${params[0]}`);
-      }
-      step.workflow = this;
-      this.steps.push(step);
-    }
   }
 
-  prepareReport() {
-    console.log("Steps", this.steps);
-    const reports = [];
-    for (const step of this.steps) {
-      const report = step.calculate().report();
-      if (report) reports.push(report);
+  run() {
+    for (const command of this.commands) {
+      const commandRunner = this.getCommand(command);
+      const report = commandRunner.execute();
+      if (report) {
+        this.reports.push(report);
+      }
     }
-    return reports;
+
+    return this.reports;
+  }
+
+  getCommand(command: string) {
+    const params = command.split(' ');
+
+    if (params[0] === 'Begin') {
+      return new BeginCommand(command, this);
+    }
+
+    if (params[0] === 'Wait') {
+      return new WaitCommand(command, this);
+    }
+
+    if (params[0] === 'Start') {
+      if (params[2] === 'all') {
+        return new StartAllStationsCommand(command, this);
+      }
+
+      return new StartStationCommand(command, this);
+    }
+
+    if (params[0] === 'Stop') {
+      if (params[2] === 'all') {
+        return new StopAllStationsCommand(command, this);
+      }
+
+      return new StopStationCommand(command, this);
+    }
+
+    if (params[0] === 'End') {
+      return new EndCommand(command, this);
+    }
+
+    throw new Error(`Unknown command: ${command}`);
   }
 }
 
-export class Step {
-  workflow: Workflow|null = null;
-  name: string = '';
-  timestamp: number = 0;
-  companies: CompanyReport[] = [];
-  totalChargingStations: number[] = [];
-  totalChargingPower: number = 0;
-  previousStep: Step|null = null;
+class WorkflowState {
+  timestamp: number;
+  companies: CompanyReport[];
+  totalChargingStations: number[];
+  totalChargingPower: number;
 
-  constructor(name: string, previousStep: Step|null = null) {
-    this.name = name;
-    this.previousStep = previousStep;
-    if (this.previousStep) {
-      this.timestamp = this.previousStep.timestamp;
-    }
-  }
-
-  calculate() {
-    return this;
-  }
-
-  calculateState() {
-    const stations = (this.workflow?.stations || []).filter((s) => this.totalChargingStations.includes(s.id));
-    this.totalChargingPower = stations.reduce((accumulator, s) => accumulator + s.maxPower, 0);
+  constructor() {
+    this.timestamp = 0;
     this.companies = [];
+    this.totalChargingStations = [];
+    this.totalChargingPower = 0;
+  }
+
+  report() {
+    return {
+      timestamp: this.timestamp,
+      companies: this.companies,
+      totalChargingStations: this.totalChargingStations,
+      totalChargingPower: this.totalChargingPower
+    };
+  }
+}
+
+export class Command {
+  name: string;
+  workflow: Workflow;
+
+  constructor(name: string, workflow: Workflow) {
+    this.name = name;
+    this.workflow = workflow;
+  }
+
+  getTimestamp() {
+    return this.workflow.state.timestamp;
+  }
+
+  setTimestamp(value: number) {
+    this.workflow.state.timestamp = value;
+  }
+
+  calculateCompanies() {
+    const stations = this.getChargingStations();
+    const companies: CompanyReport[] = [];
 
     for (const s of stations) {
       const companyId = s.companyId;
-      const companyReport = this.companies.find((c) => c.id === companyId);
+      const companyReport = companies.find((c) => c.id === companyId);
 
       if (companyReport) {
         companyReport.chargingStations.push(s.id);
         companyReport.chargingPower += s.maxPower;
       } else {
-        this.companies.push({
+        companies.push({
           id: companyId,
           chargingStations: [ s.id ],
           chargingPower: s.maxPower
@@ -122,13 +148,13 @@ export class Step {
       }
 
       if (s.parentCompany) {
-        const parentReport = this.companies.find((c) => c.id === s.parentCompany);
+        const parentReport = companies.find((c) => c.id === s.parentCompany);
       
         if (parentReport) {
           parentReport.chargingStations.push(s.id);
           parentReport.chargingPower += s.maxPower;
         } else {
-          this.companies.push({
+          companies.push({
             id: s.parentCompany,
             chargingStations: [ s.id ],
             chargingPower: s.maxPower
@@ -136,106 +162,114 @@ export class Step {
         }
       }
     }
+
+    this.workflow.state.companies = companies
   }
 
-  report(): Report|null {
-    return {
-      step: this.name,
-      timestamp: this.timestamp,
-      companies: this.companies,
-      totalChargingStations: this.totalChargingStations,
-      totalChargingPower: this.totalChargingPower
-    }
+  getAllStationIds() {
+    return this.workflow.stations.map((station) => station.id);
+  }
+
+  calculateTotalChargingPower() {
+    const stations = this.getChargingStations();
+    this.workflow.state.totalChargingPower = stations.reduce((accumulator, s) => accumulator + s.maxPower, 0);
+  }
+
+  getChargingStations() {
+    const chargingStationIds = this.getTotalChargingStations();
+    return this.workflow.stations.filter((s) => chargingStationIds.includes(s.id));
+  }
+
+  getTotalChargingStations() {
+    return this.workflow.state.totalChargingStations;
+  }
+
+  setTotalChargingStations(value: number[]) {
+    this.workflow.state.totalChargingStations = value;
+  }
+
+  execute(): Report|null {
+    return this._report();
+  }
+
+  _report() {
+    const report = Object.assign({
+      step: this.name
+    }, this.workflow.state.report());
+
+    return report;
   }
 }
 
-export class BeginStep extends Step {
-  calculate() {
-    this.timestamp = getTimestamp(); 
-    return this;
+export class BeginCommand extends Command {
+  execute() {
+    this.setTimestamp(getTimestamp()); 
+    return this._report();
   }
 }
 
-export class EndStep extends Step {
-  calculate() {
-    this.timestamp = this.previousStep?.timestamp || 0;
-    this.totalChargingStations = copyArray(this.previousStep?.totalChargingStations || []);
-    return this;
+export class EndCommand extends Command {
+  execute() {
+    return this._report();
   }
 }
 
-export class WaitStep extends Step {
-  calculate() {
-    const [ name, time ] = this.name.split(' ');
-    const previousTimestamp = this.previousStep?.timestamp || 0;
-    this.timestamp = Number(time) + previousTimestamp;
-    this.totalChargingStations = copyArray(this.previousStep?.totalChargingStations || []);
-    return this;
-  }
-
-  report() {
+export class WaitCommand extends Command {
+  execute() {
+    this.setTimestamp(this.getTimestamp() + Number(this.name.split(' ')[1]));
     return null;
   }
 }
 
-export class StartStationStep extends Step {
-  calculate() {
-    this.timestamp = this.previousStep?.timestamp || 0;
-    const params = this.name.split(' ');
+export class StartAllStationsCommand extends Command {
+  execute() {
+    this.setTotalChargingStations(this.getAllStationIds());
 
-    if (params[2] === 'all') {
-      this.startAllStations();
-    } else {
-      this.startStation(Number(params[2]));
-    }
+    this.calculateTotalChargingPower();
+    this.calculateCompanies();
 
-    this.calculateState();
-
-    return this;
-  }
-
-  startAllStations() {
-    this.totalChargingStations = this.workflow?.stations.map((station) => station.id) || [];
-    return this;
-  }
-
-  startStation(stationId: number) {
-    this.totalChargingStations = copyArray(this.previousStep?.totalChargingStations || []);
-    if (!this.totalChargingStations.includes(stationId)) {
-      this.totalChargingStations.push(stationId);
-    }
-    return this;
+    return this._report();
   }
 }
 
-export class StopStationStep extends Step {
-  calculate() {
-    this.timestamp = this.previousStep ? this.previousStep.timestamp : 0;
+export class StartStationCommand extends Command {
+  execute() {
     const params = this.name.split(' ');
+    const chargingStations = this.getTotalChargingStations();
+    const stationId = Number(params[2]);
 
-    if (params[2] === 'all') {
-      this.stopAllStations();
-    } else {
-      this.stopStation(Number(params[2]));
+    if (!chargingStations.includes(stationId)) {
+      this.setTotalChargingStations(chargingStations.concat([ stationId ]));
     }
 
-    this.calculateState();
+    this.calculateTotalChargingPower();
+    this.calculateCompanies();
 
-    return this;
-  }
-
-  stopAllStations() {
-    this.totalChargingStations = [];
-    return this;
-  }
-
-  stopStation(stationId: number) {
-    const chargingStations = copyArray(this.previousStep?.totalChargingStations || []);
-    this.totalChargingStations = chargingStations.filter((id) => id !== stationId);
-    return this;
+    return this._report();
   }
 }
 
-function copyArray(arr: any[]) {
-  return [...arr];
+export class StopStationCommand extends Command {
+  execute() {
+    const params = this.name.split(' ');
+    const stationId = Number(params[2]);
+    const chargingStations = this.getTotalChargingStations().filter((id) => stationId !== id);
+    this.setTotalChargingStations(chargingStations);
+
+    this.calculateTotalChargingPower();
+    this.calculateCompanies();
+
+    return this._report();
+  }
+}
+
+export class StopAllStationsCommand extends  Command {
+  execute() {
+    this.setTotalChargingStations([]);
+
+    this.calculateTotalChargingPower();
+    this.calculateCompanies();
+
+    return this._report();
+  }
 }
